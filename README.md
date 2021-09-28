@@ -1,6 +1,6 @@
 # DexScanner
 DEX中检查特定API调用处，该工程里只添加了dexClassLoader的检测
-代码没有怎么写注释，如需添加扫描其他API，可以看看我CSDN上的一些说明（http://blog.csdn.net/u011247544/article/details/61922270）
+代码没有怎么写注释，如需添加扫描其他API，可以看看我CSDN上的一些说明（https://blog.csdn.net/u011247544/article/details/61922270?spm=1001.2014.3001.5501）
 
 支持单文件/文件夹导入进行扫描
 支持包含APK路径下对odex文件的扫描（apk不包含dex的前提）

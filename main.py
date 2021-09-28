@@ -1,16 +1,16 @@
 __author__ = 'Rorschach'
 # -*- coding: UTF-8 -*-
 
-from DexHandler import DexFormAnalyzer, DexFormMap, DexFormDetect, DexFormLoader
+from DexHandler import DexFormAnalyzer, DexFormMap, DexFormLoader
 from Utils.FileUtil import *
+from DetectRules import Detecter
 
 if __name__ == '__main__':
-    apkPath = GetApkPath()
+    apkPath = getApkPath()
     apkList = []
 
     if os.path.isdir(apkPath):
-        # dir:loop all files
-        LoopDirFiles(apkPath, apkList, ".apk", 4)
+        loopDirFiles(apkPath, apkList, ".apk", 4)
     else:
         strLen = len(apkPath)
         if apkPath[strLen - 4:strLen] == ".apk":
@@ -23,38 +23,35 @@ if __name__ == '__main__':
         dexFormAnalyzer = DexFormAnalyzer.DexAnalyzer()
 
         logging.info("[File]%s", file)
-        unzipDir = GetDexPathByZipApk(file)
+        unzipDir = getDexPathByZipApk(file)
         if unzipDir == "":
             logging.error("[Fail]Not Found Unzip Dir")
             continue
 
         dexPath = unzipDir + "classes.dex"
-        amTime = GetSaltTimeStr()
+        amTime = getSaltTimeStr()
 
         #读取dex文件
         try:
-            dexFormLoader.GetMapFile(dexFormMap,dexPath)
+            dexFormLoader.getMapFile(dexFormMap, dexPath)
         except Exception as e:
-            CleanFiles(dexPath,amTime)
+            cleanFiles(dexPath, amTime)
             continue
 
-        #analyze dex file
+        #解析dex文件
         dexHeader = DexFormAnalyzer.DexHeaderProperty(dexFormLoader.mapfile)
         if not dexHeader.verifyDex(dexFormLoader.mapfile):
             logging.error("[Fail]dex file verify error.")
             exit(-1)
 
-        dexFormLoader.LoadAllClassAndMethod(dexHeader)
+        #加载dex中的类和方法
+        dexFormLoader.loadAllClassAndMethod(dexHeader)
 
-        #Resolute ins
-        dexDetect = DexFormDetect.DexDetect()
-        dexDetect.SetDexLoaderObj(dexFormLoader)
+        #开始检测和扫描指定API
+        dexDetect = Detecter.Detecter()
+        dexDetect.detectApkApi(dexFormLoader, dexHeader)
 
-        #Count number of set port
-        countSetPort = dexDetect.DetectApkApi(dexHeader)
-
-
-        CleanFiles(dexPath,amTime)
+        cleanFiles(dexPath, amTime)
         del dexFormMap
         del dexFormLoader
         del dexFormAnalyzer

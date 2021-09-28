@@ -1,20 +1,18 @@
 __author__ = 'Rorschach'
 
 from DexHandler import DexFormAnalyzer
+from DetectRules import *
 import logging
 
-class DexDetect:
+class Detecter:
     className = ""
     dexLoader = None
 
     def __init__(self):
-        self.className = "Dex Detect"
+        self.className = "Detecter"
         self.dexLoader = None
 
-    def SetDexLoaderObj(self,dexLoader):
-        self.dexLoader = dexLoader
-
-    def CheckingInsAndTypeValue(self,insNum,ins,dexHeader,insValue,strDes):
+    def checkingInsAndTypeValue(self,insNum,ins,dexHeader,insValue,strDes):
         str = ""
         if insNum % 2 == 0 and ins[insNum] == insValue:
         #      print self.dexLoader.dexClassName[codeNum] + "--" + self.dexLoader.dexMethodName[codeNum]
@@ -35,7 +33,7 @@ class DexDetect:
         else:
             return 0
 
-    def CheckingInsAndClassValue(self,insNum,ins,dexHeader,insValue,methodName,className):
+    def checkingInsAndClassValue(self,insNum,ins,dexHeader,insValue,methodName,className):
         str = ""
         classStr = ""
         if insNum % 2 == 0 and ins[insNum] == insValue:
@@ -72,7 +70,7 @@ class DexDetect:
             return 0
 
 
-    def CheckingInsAndMethodValue(self,insNum,ins,dexHeader,insValue,strDes):
+    def checkingInsAndMethodValue(self,insNum,ins,dexHeader,insValue,strDes):
         str = ""
         if insNum % 2 == 0 and ins[insNum] == insValue:
             methodNum = (ins[insNum+2] & 0xff) | ((ins[insNum+3]  << 8) & 0xff00)
@@ -94,7 +92,7 @@ class DexDetect:
         else:
             return 0
 
-    def CheckingInsAndIncludeStrValue(self,insNum,ins,dexHeader,insValue,strDes):
+    def checkingInsAndIncludeStrValue(self,insNum,ins,dexHeader,insValue,strDes):
         str = ""
         if insNum % 2 == 0 and ins[insNum] == insValue:
         #      print self.dexLoader.dexClassName[codeNum] + "--" + self.dexLoader.dexMethodName[codeNum]
@@ -113,7 +111,7 @@ class DexDetect:
         else:
             return 0
 
-    def CheckingInsAndStrValue(self,insNum,ins,dexHeader,insValue,strDes):
+    def checkingInsAndStrValue(self,insNum,ins,dexHeader,insValue,strDes):
         str = ""
         if insNum % 2 == 0 and ins[insNum] == insValue:
         #      print self.dexLoader.dexClassName[codeNum] + "--" + self.dexLoader.dexMethodName[codeNum]
@@ -132,9 +130,9 @@ class DexDetect:
         else:
             return 0
 
-    def DetectApkApi(self,dexHeader):
-        #Loop All method code to check
-        logging.info("[Detc]Start Checking if has Some Api")
+    def detectApkApi(self, dexFormLoader, dexHeader):
+        self.dexLoader = dexFormLoader
+        logging.info("[Detc]Start Detecting...")
         countFindDexClassLoader = 0
         countFindDexClassLoaderPossible = 0
 
@@ -143,7 +141,7 @@ class DexDetect:
             resultDexClassLoader = [0,0]
 
             for insNum in range(0,len(ins) - 2):
-                resultDexClassLoader = self.DetectDexClassLoader(dexHeader,insNum,ins,resultDexClassLoader)
+                resultDexClassLoader = self.detectDexClassLoader(dexHeader,insNum,ins,resultDexClassLoader)
 
             if resultDexClassLoader[0] > 0 and resultDexClassLoader[1] > 0:
                 countFindDexClassLoader += 1
@@ -161,9 +159,7 @@ class DexDetect:
             logging.info("[Detc]Find Possible DexClassLoader Api,Count number = %d", countFindDexClassLoaderPossible)
 
 
-    def DetectDexClassLoader(self,dexHeader,insNum,ins,resultDexClassLoader):
-        #init dexclassloader
-        #loadClass
-        resultDexClassLoader[0] += self.CheckingInsAndClassValue(insNum,ins,dexHeader,0x70,"<init>","Ldalvik/system/DexClassLoader;")
-        resultDexClassLoader[1] += self.CheckingInsAndMethodValue(insNum,ins,dexHeader,0x6E,"loadClass")
+    def detectDexClassLoader(self,dexHeader,insNum,ins,resultDexClassLoader):
+        resultDexClassLoader[0] += self.checkingInsAndClassValue(insNum,ins,dexHeader,INS_INVOKE_DIRECT,"<init>","Ldalvik/system/DexClassLoader;")
+        resultDexClassLoader[1] += self.checkingInsAndMethodValue(insNum,ins,dexHeader,INS_INVOKE_VIRTUAL,"loadClass")
         return resultDexClassLoader

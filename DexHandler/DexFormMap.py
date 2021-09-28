@@ -11,16 +11,16 @@ class DexMap:
         self.fileSize = 0
         self.basePointer = []
 
-    def SetPointer(self,basePointer):
+    def setPointer(self, basePointer):
         self.basePointer = basePointer
 
-    def GetPointer(self):
+    def getPointer(self):
         return self.basePointer
 
-    def GetFileSize(self):
+    def getFileSize(self):
         return self.fileSize
 
-    def ReadFile(self,path):
+    def readFile(self, path):
         fileObj = open(path,'rb')
         fileObj.seek(0,2)
         self.fileSize = fileObj.tell()
@@ -36,5 +36,5 @@ class DexMap:
             fileObj.close()
         if basePointer == []:
             return False
-        self.SetPointer(basePointer)
+        self.setPointer(basePointer)
         return True

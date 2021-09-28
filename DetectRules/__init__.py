@@ -1,0 +1,1 @@
+from DetectRules.SmaliMarco import *

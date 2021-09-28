@@ -3,6 +3,9 @@ __author__ = 'Rorschach'
 from DexHandler import DexFormAnalyzer
 from Utils.HexUtil import *
 
+DEX_CLASS_DEF_ITEM_SIZE = 0x20
+DEX_CLASS_DEF_ITEM_CLASS_DATA_OFF_VAL = 0x18
+
 class DexLoader:
     mapfile = []
     dexMethodCodes = []
@@ -17,9 +20,9 @@ class DexLoader:
         self.dexClassName = []
         self.dexMethodName = []
 
-    def GetMapFile(self,mapFile,dexPath):
-        if mapFile.ReadFile(dexPath):
-            self.mapfile = mapFile.GetPointer()
+    def getMapFile(self, mapFile, dexPath):
+        if mapFile.readFile(dexPath):
+            self.mapfile = mapFile.getPointer()
 
     def jumpToNextField(self,dexContent,classDataOffset,size,times):
         for i in range(0,size*times):
@@ -27,50 +30,44 @@ class DexLoader:
             classDataOffset += listNumberAndValue[0]
         return classDataOffset
 
-    def LoadAllClassAndMethod(self,dexHeader):
-        #Traversal all class.method,query order:
-        #DexHeader(classDefsSize & classDefsOff) -> DexClassDef(classIdx) -> DexTypeId(descriptorIdx) -> DexStringId(stringDataOff) ->Get Class Name
+    #解析加载所有类和方法
+    def loadAllClassAndMethod(self, dexHeader):
         #DexClassDef Obj(classIdx) -> DexClassData(DexClassDataHeader & directMethods & virtualMethods) -> DexClassDataHeader(2 type of method size) -> DexMethod(methodIdx & codeOff) -> DexMethodId(nameIdx) -> Get Method Name
         #                                                                                                                                                                              -> DexCode -> Get method message & ins
 
-        #DexHeader(classDefsSize & classDefsOff)
+        #读取类定义的数据段大小和偏移
         classDefSize = dexHeader.classDefSize
         classDefOff = dexHeader.classDefOff
 
+        strClassName = ""  # 类类型的字符串
         for i in range(0,classDefSize):
-            offset = classDefOff + i * 0x20
-            #DexClassDef(classIdx)
+            offset = classDefOff + i * DEX_CLASS_DEF_ITEM_SIZE
+
+            #解析类预定义结构体#
+            #找到类类型,并获取对应名称字符串
             classDefClassIdx = DexFormAnalyzer.endianToNormal(
                 stringListToIntList(self.mapfile[offset:offset + 4], 4), 4)
 
-            # DexTypeId(descriptorIdx)
-            typeOffset =  classDefClassIdx * 4 + dexHeader.typeIdxOff
+            #获取类类型
+            typeOffset = classDefClassIdx * 4 + dexHeader.typeIdxOff
 
-            #DexStringId(stringDataOff)
+            #获取类型对应的字符串
             classDefItemStringIdx = DexFormAnalyzer.endianToNormal(
                 stringListToIntList(self.mapfile[typeOffset:typeOffset + 4], 4), 4)
-
             stringOffset = 4 * classDefItemStringIdx + dexHeader.stringIdxOff
             stringDataOff = DexFormAnalyzer.endianToNormal(
                 stringListToIntList(self.mapfile[stringOffset:stringOffset + 4], 4), 4)
-
             strLen = ord(self.mapfile[stringDataOff])
-            strClass = ""
             for j in range(0,strLen):
-                strClass += (self.mapfile[stringDataOff + 1 + j]).decode("gb2312")
-
-            conti = 0
+                strClassName += (self.mapfile[stringDataOff + 1 + j]).decode("gb2312")
+            #类类型如果是android.support.*类型,忽略
             strAndroidSupport = "Landroid/support/"
-            for ci in range(0,len(strAndroidSupport)):
-                if strAndroidSupport[ci] != strClass[ci]:
-                    conti = 1
-                    break
-            if conti == 0:
+            if strAndroidSupport == strClassName[:len(strAndroidSupport)]:
                 continue
 
-         #   print "--DbIF-- Class: " + strClass
-
-            offset += 0x18                                                                                      #To the DexClassDataDef.classDataOff
+            #继续解析类预定义结构体#
+            #获取类的数据,先找对应类数据在文件中的偏移位置
+            offset += DEX_CLASS_DEF_ITEM_CLASS_DATA_OFF_VAL
             list_tmp = []
             for k in range(0,4):
                 tmp = ord(self.mapfile[offset+k])
@@ -79,19 +76,20 @@ class DexLoader:
             classDataItem = DexFormAnalyzer.endianToNormal(list_tmp, 4)
             if classDataItem == 0x0:
                 continue
+            #解析类中数据,得到各种变量方法数量的统计
             dexClassDataHeader = DexFormAnalyzer.DexClassDataHeader(self.mapfile, classDataItem)
-
+            #统计数量不是定长的变量,因此加上偏移才是类数据的内容
             classDataItemPointer = classDataItem + dexClassDataHeader.headerTakeBits
 
-            #ignore field
+            #跳过变量字段的定义
             classDataItemPointer = self.jumpToNextField(self.mapfile,classDataItemPointer,dexClassDataHeader.staticFieldsSize,2)        #DexField has 2 fields
             classDataItemPointer = self.jumpToNextField(self.mapfile,classDataItemPointer,dexClassDataHeader.instanceFieldsSize,2)
             classDataOffset = classDataItemPointer
+            #开始对方法进行解析
+            classDataOffset = self.loadMethod(classDataOffset, dexClassDataHeader.directMethodsSize, dexHeader, "Direct", strClassName)
+            self.loadMethod(classDataOffset, dexClassDataHeader.virtualMethodsSize, dexHeader, "Virual", strClassName)
 
-            classDataOffset = self.LoadMethod(classDataOffset,dexClassDataHeader.directMethodsSize,dexHeader,"Direct",strClass)
-            self.LoadMethod(classDataOffset,dexClassDataHeader.virtualMethodsSize,dexHeader,"Virual",strClass)
-
-    def LoadMethod(self,classDataOffset,methodsSize,dexHeader,methodType,strClass):
+    def loadMethod(self, classDataOffset, methodsSize, dexHeader, methodType, strClass):
         listNumberAndValueBase = 0
         for methodNum in range(0,methodsSize * 3):
             listNumberAndValue = DexFormAnalyzer.analyzeleb128(self.mapfile, classDataOffset)
@@ -122,10 +120,10 @@ class DexLoader:
             #analyze dex method code
             if (methodNum+1) % 3 == 0:
                 if listNumberAndValue[1] != 0:
-                    self.GetDexMethod(listNumberAndValue[1],strClass,str)
+                    self.getDexMethod(listNumberAndValue[1], strClass, str)
         return classDataOffset
 
-    def GetDexMethod(self,offset,className,methodName):
+    def getDexMethod(self, offset, className, methodName):
         dexCode = DexFormAnalyzer.DexCode(offset, self.mapfile)
         self.dexMethodCodes.append(dexCode)
         self.dexClassName.append(className)

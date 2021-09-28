@@ -5,17 +5,17 @@ import sys,logging,re,zipfile,time,os,shutil,winreg,gc,random
 logging.basicConfig(format='[%(asctime)s][%(filename)s][line:%(lineno)d][%(levelname)s]%(message)s', level=logging.DEBUG)
 
 #获取APK路径
-def GetApkPath():
-    listArgv = GetFilePath()
+def getApkPath():
+    listArgv = getFilePath()
     dexPath = listArgv[0]
     if dexPath == "":
         logging.error("[Fail]GetApkPath")
         exit(-1)
-    logging.info("[Success]GetApkPath : %s", dexPath)
+    # logging.info("[Success]GetApkPath : %s", dexPath)
     return dexPath
 
 #通过参数传入或者通过命令行输入APK路径
-def GetFilePath():
+def getFilePath():
     list = []
     if len(sys.argv) > 1:
         list.append(sys.argv[1])
@@ -25,17 +25,17 @@ def GetFilePath():
     return list
 
 #解压APK得到DEX
-def GetDexPathByZipApk(apkPath):
-    unzipDirPath =  UnzipFile(apkPath,GetDesktop())
+def getDexPathByZipApk(apkPath):
+    unzipDirPath =  unzipFile(apkPath, getDesktop())
     if unzipDirPath == "":
         logging.error("[Fail]unzip classes.dex")
         return ""
     else:
-        logging.info("[Success]unzip dex : %s", unzipDirPath)
+        # logging.info("[Success]unzip dex : %s", unzipDirPath)
         return unzipDirPath
 
 #从odex中查找dex
-def FindDexFileInOdex(unzipPath,apkPath):
+def findDexFileInOdex(unzipPath, apkPath):
     strlen = len(apkPath)
     while strlen != 0:
         if apkPath[strlen-1:strlen] == "\\":
@@ -43,16 +43,16 @@ def FindDexFileInOdex(unzipPath,apkPath):
             break
         strlen -= 1
     odexList = []
-    LoopDirFiles(apkPath,odexList,".odex",5)
+    loopDirFiles(apkPath, odexList, ".odex", 5)
     if len(odexList) == 1:
         #cp file to unzipPath,cut before dex
         open(unzipPath+"classes.dex", "wb").write(open(odexList[0], "rb").read())
-        ret = FixOdexToDex(unzipPath+"classes.dex")
+        ret = fixOdexToDex(unzipPath + "classes.dex")
         return ret
     return 0
 
 #从odex中提取dex
-def FixOdexToDex(dexFile):
+def fixOdexToDex(dexFile):
     try:
         file = open(dexFile,"rb")
         f = file.read()
@@ -82,19 +82,19 @@ def FixOdexToDex(dexFile):
     return 1
 
 #遍历目录下所有文件
-def LoopDirFiles(path,fileList,keyStr,lens):
+def loopDirFiles(path, fileList, keyStr, lens):
     files = os.listdir(path)
     for file in files:
         filePath = os.path.join(path,file)
         if os.path.isdir(filePath):
-            LoopDirFiles(filePath,fileList,keyStr,lens)
+            loopDirFiles(filePath, fileList, keyStr, lens)
         else:
             strLen = len(filePath)
             if filePath[strLen-lens:strLen] == keyStr:
                 fileList.append(filePath)
 
 #删除解压文件
-def CleanFiles(dexPath,amTime):
+def cleanFiles(dexPath, amTime):
     pathList = dexPath.split("/")
     dexDirPath = ""
     for listNum in range(0,(len(pathList) - 1)):
@@ -103,18 +103,18 @@ def CleanFiles(dexPath,amTime):
         shutil.rmtree(dexDirPath)
 
 #仅获取WINDOWS桌面目录
-def GetDesktop():
+def getDesktop():
     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders',)
     return winreg.QueryValueEx(key, "Desktop")[0]
 
 #获取时间+随机值避免重复
-def GetSaltTimeStr():
+def getSaltTimeStr():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + str(random.randint(0, 99999999))
 
 #解压zip包
-def UnzipFile(path,unzipPath):
+def unzipFile(path, unzipPath):
     isZip = zipfile.is_zipfile(path)
-    starttime = GetSaltTimeStr()
+    starttime = getSaltTimeStr()
     hasFindAM = 0
     hasFindDex = 0
     if isZip:
@@ -135,7 +135,7 @@ def UnzipFile(path,unzipPath):
     else:
         logging.error("[Fail]Not Zip File")
     if hasFindDex == 0:
-        hasFindDex = FindDexFileInOdex(unzipPath + "/" + starttime + "/",path)
+        hasFindDex = findDexFileInOdex(unzipPath + "/" + starttime + "/", path)
 
     if hasFindDex == 1 and hasFindAM == 1:
         return unzipPath + "/" + starttime + "/"

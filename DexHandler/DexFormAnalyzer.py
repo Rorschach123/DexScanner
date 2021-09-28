@@ -3,6 +3,21 @@ __author__ = 'Rorschach'
 import logging
 from Utils.HexUtil import *
 
+DEX_HEADER_STRING_SIZE_VAL  = 0x38
+DEX_HEADER_STRING_OFF_VAL   = 0x3C
+DEX_HEADER_TYPE_SIZE_VAL    = 0x40
+DEX_HEADER_TYPE_OFF_VAL     = 0x44
+DEX_HEADER_PROTO_SIZE_VAL   = 0x48
+DEX_HEADER_PROTO_OFF_VAL    = 0x4C
+DEX_HEADER_FIELD_SIZE_VAL   = 0x50
+DEX_HEADER_FIELD_OFF_VAL    = 0x54
+DEX_HEADER_METHOD_SIZE_VAL  = 0x58
+DEX_HEADER_METHOD_OFF_VAL   = 0x5C
+DEX_HEADER_CLASS_SIZE_VAL   = 0x60
+DEX_HEADER_CLASS_OFF_VAL    = 0x64
+DEX_HEADER_DATA_SIZE_VAL    = 0x68
+DEX_HEADER_DATA_OFF_VAL     = 0x6C
+
 class DexAnalyzer:
     className = ""
     def __init__(self):
@@ -20,25 +35,26 @@ class DexHeaderProperty:
     classDefOff = 0
 
     def __init__(self,dexContent):
-        logging.info("--------------------Dex Header--------------------")
-        self.classDefSize = self.readDexHeaderProperty(dexContent,0x60,4)
-        self.classDefOff = self.readDexHeaderProperty(dexContent,0x64,4)
-        logging.info("[Mess]read class def size and off is 0x%08X and 0x%08X", self.classDefSize,self.classDefOff)
+        # logging.info("--------------------Dex Header--------------------")
+        self.classDefSize = self.readDexHeaderProperty(dexContent,DEX_HEADER_CLASS_SIZE_VAL,4)
+        self.classDefOff = self.readDexHeaderProperty(dexContent,DEX_HEADER_CLASS_OFF_VAL,4)
+        # logging.info("[Mess]read class def size and off is 0x%08X and 0x%08X", self.classDefSize,self.classDefOff)
 
-        self.stringIdxSize = self.readDexHeaderProperty(dexContent,0x38,4)
-        self.stringIdxOff = self.readDexHeaderProperty(dexContent,0x3C,4)
-        logging.info("[Mess]read string idx size and off is 0x%08X and 0x%08X", self.stringIdxSize,self.stringIdxOff)
+        self.stringIdxSize = self.readDexHeaderProperty(dexContent,DEX_HEADER_STRING_SIZE_VAL,4)
+        self.stringIdxOff = self.readDexHeaderProperty(dexContent,DEX_HEADER_STRING_OFF_VAL,4)
+        # logging.info("[Mess]read string idx size and off is 0x%08X and 0x%08X", self.stringIdxSize,self.stringIdxOff)
 
-        self.typeIdxSize = self.readDexHeaderProperty(dexContent,0x40,4)
-        self.typeIdxOff = self.readDexHeaderProperty(dexContent,0x44,4)
-        logging.info("[Mess]read type idx size and off is 0x%08X and 0x%08X", self.typeIdxSize,self.typeIdxOff)
+        self.typeIdxSize = self.readDexHeaderProperty(dexContent,DEX_HEADER_TYPE_SIZE_VAL,4)
+        self.typeIdxOff = self.readDexHeaderProperty(dexContent,DEX_HEADER_TYPE_OFF_VAL,4)
+        # logging.info("[Mess]read type idx size and off is 0x%08X and 0x%08X", self.typeIdxSize,self.typeIdxOff)
 
-        self.methodIdsSize = self.readDexHeaderProperty(dexContent,0x58,4)
-        self.methodIdsOff = self.readDexHeaderProperty(dexContent,0x5c,4)
-        logging.info("[Mess]read method idx size and off is 0x%08X and 0x%08X", self.methodIdsSize,self.methodIdsOff)
-        logging.info("--------------------------------------------------")
+        self.methodIdsSize = self.readDexHeaderProperty(dexContent,DEX_HEADER_METHOD_SIZE_VAL,4)
+        self.methodIdsOff = self.readDexHeaderProperty(dexContent,DEX_HEADER_METHOD_OFF_VAL,4)
+        # logging.info("[Mess]read method idx size and off is 0x%08X and 0x%08X", self.methodIdsSize,self.methodIdsOff)
+        # logging.info("--------------------------------------------------")
 
     def verifyDex(self,dexContent):
+        #魔术字校验
         isDex = True
         if self.readDexHeaderProperty(dexContent, 0x0, 8) != 0x003533300A786564:
             isDex = False
@@ -54,6 +70,7 @@ class DexHeaderProperty:
         number = endianToNormal(list1[0:length],length)
         return number
 
+#每个数据存储采用leb128数据类型存储
 class DexClassDataHeader:
     staticFieldsSize = 0
     instanceFieldsSize = 0
@@ -109,7 +126,6 @@ class DexCode:
             tmp = ord(dexContent[offset])
             offset += 1
             self.insns.append(tmp)
-
 
 def analyzeleb128(dexContent,offset):
     listNumberAndValue = [1,0] # first means value take number of bits, second means value
