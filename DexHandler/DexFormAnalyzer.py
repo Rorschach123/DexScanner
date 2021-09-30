@@ -79,24 +79,23 @@ class DexClassDataHeader:
     headerTakeBits = 0
 
     def __init__(self,dexContent,offset):
-        analyStr = []
         analyStr = analyzeleb128(dexContent,offset + self.headerTakeBits)
         self.staticFieldsSize = analyStr[1]
         self.headerTakeBits += analyStr[0]
-        analyStr = []
         analyStr = analyzeleb128(dexContent,offset + self.headerTakeBits)
         self.instanceFieldsSize = analyStr[1]
         self.headerTakeBits += analyStr[0]
-        analyStr = []
         analyStr = analyzeleb128(dexContent,offset + self.headerTakeBits)
         self.directMethodsSize = analyStr[1]
         self.headerTakeBits += analyStr[0]
-        analyStr = []
         analyStr = analyzeleb128(dexContent,offset + self.headerTakeBits)
         self.virtualMethodsSize = analyStr[1]
         self.headerTakeBits += analyStr[0]
 
 class DexCode:
+    className = ""
+    methodName = ""
+    methodType = ""
     registersSize = 0
     insSize = 0
     outsSize = 0

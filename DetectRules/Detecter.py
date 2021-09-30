@@ -1,7 +1,8 @@
 __author__ = 'Rorschach'
 
 from DexHandler import DexFormAnalyzer
-from DetectRules import *
+from DetectRules.Rules import *
+from DetectRules.SmaliMarco import *
 import logging
 
 class Detecter:
@@ -69,7 +70,6 @@ class Detecter:
         else:
             return 0
 
-
     def checkingInsAndMethodValue(self,insNum,ins,dexHeader,insValue,strDes):
         str = ""
         if insNum % 2 == 0 and ins[insNum] == insValue:
@@ -130,36 +130,67 @@ class Detecter:
         else:
             return 0
 
-    def detectApkApi(self, dexFormLoader, dexHeader):
+    #扫描smali捕捉API
+    def detectApkApi(self, dexFormLoader, dexHeader, rules):
         self.dexLoader = dexFormLoader
-        logging.info("[Detc]Start Detecting...")
-        countFindDexClassLoader = 0
-        countFindDexClassLoaderPossible = 0
 
         for codeNum in range(0,len(self.dexLoader.dexMethodCodes)):
             ins = self.dexLoader.dexMethodCodes[codeNum].insns
-            resultDexClassLoader = [0,0]
+            className = self.dexLoader.dexMethodCodes[codeNum].className
+            methodName = self.dexLoader.dexMethodCodes[codeNum].methodName
 
-            for insNum in range(0,len(ins) - 2):
-                resultDexClassLoader = self.detectDexClassLoader(dexHeader,insNum,ins,resultDexClassLoader)
+            codeLen = len(ins)
+            calcuCodeLen = 0
+            while codeLen > calcuCodeLen:
+                opcode = ins[calcuCodeLen]
+                opcodeLen = SMALI_OPCODE_DEF[opcode][1]
+                calcuCodeLen += opcodeLen
 
-            if resultDexClassLoader[0] > 0 and resultDexClassLoader[1] > 0:
-                countFindDexClassLoader += 1
-                logging.info("[Detc]DexClassLoader : ClassName = " + self.dexLoader.dexClassName[codeNum] + " MethodName = " + self.dexLoader.dexMethodName[codeNum])
-            else:
-                if resultDexClassLoader[0] > 0:
-                    countFindDexClassLoaderPossible += 1
-                    logging.info("[Detc]Possible_DexClassLoader : ClassName = " + self.dexLoader.dexClassName[codeNum] + " MethodName = " + self.dexLoader.dexMethodName[codeNum])
-
-        if countFindDexClassLoader != 0:
-            logging.info("[Detc]Find DexClassLoader Api,Count number = %d", countFindDexClassLoader)
-        else:
-            logging.info("[Detc]Not Found DexClassLoader Api")
-        if countFindDexClassLoaderPossible != 0:
-            logging.info("[Detc]Find Possible DexClassLoader Api,Count number = %d", countFindDexClassLoaderPossible)
+                # TODO:NOP之后跟着SWITCH-CASE的情况
+                if opcode == 0x0:
+                    calcuCodeLen = codeLen
+                    break
 
 
-    def detectDexClassLoader(self,dexHeader,insNum,ins,resultDexClassLoader):
-        resultDexClassLoader[0] += self.checkingInsAndClassValue(insNum,ins,dexHeader,INS_INVOKE_DIRECT,"<init>","Ldalvik/system/DexClassLoader;")
-        resultDexClassLoader[1] += self.checkingInsAndMethodValue(insNum,ins,dexHeader,INS_INVOKE_VIRTUAL,"loadClass")
-        return resultDexClassLoader
+            if calcuCodeLen != codeLen:
+                # logging.error("Code len calculate error : " + ",".join(hex(_) for _ in ins))
+                # logging.error("%d : %d" %(codeLen, calcuCodeLen))
+                logging.error(className + "_" + methodName)
+
+                # calcuCodeLen = 0
+                # while codeLen > calcuCodeLen:
+                #     opcode = ins[calcuCodeLen]
+                #     opcodeLen = SMALI_OPCODE_DEF[opcode][1]
+                #     calcuCodeLen += opcodeLen
+                #     logging.error("%x" %opcode)
+                break
+
+
+            # for insNum in range(0,len(ins) - 2):
+            #     for rule in rules:
+            #         if rule.checkType == CHECK_CLASS_TYPE:
+            #             if self.checkingInsAndClassValue(insNum, ins, dexHeader, rule.insValue, rule.methodName, rule.className) != 0:
+            #                 logging.info("[Detect]" + rule.className + "_" + rule.methodName + "[Class]" + className + "[Method]" + methodName)
+            #         elif rule.checkType == CHECK_METHOD_TYPE:
+            #             if self.checkingInsAndMethodValue(insNum, ins, dexHeader,rule.insValue, rule.methodName) != 0:
+            #                 logging.info("[Detect]" + rule.methodName + "[Class]" + className + "[Method]" + methodName)
+                    # elif rule.checkType == CHECK_TYPE_TYPE:
+                    #     result = self.checkingInsAndClassValue(insNum, ins, dexHeader,rule.insValue, rule.methodName, rule.className)
+                    # elif rule.checkType == CHECK_TYPE_FIELD:
+                    #     result = self.checkingInsAndClassValue(insNum, ins, dexHeader,rule.insValue, rule.methodName, rule.className)
+
+                        # if resultDexClassLoader[0] > 0 and resultDexClassLoader[1] > 0:
+                        #     countFindDexClassLoader += 1
+                        #     logging.info("[Detc]DexClassLoader : ClassName = " + self.dexLoader.dexClassName[
+                        #         codeNum] + " MethodName = " + self.dexLoader.dexMethodName[codeNum])
+                        # else:
+                        #     if resultDexClassLoader[0] > 0:
+                        #         countFindDexClassLoaderPossible += 1
+                        #         logging.info(
+                        #             "[Detc]Possible_DexClassLoader : ClassName = " + self.dexLoader.dexClassName[
+                        #                 codeNum] + " MethodName = " + self.dexLoader.dexMethodName[codeNum])
+
+
+
+
+

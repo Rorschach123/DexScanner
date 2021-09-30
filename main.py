@@ -3,39 +3,38 @@ __author__ = 'Rorschach'
 
 from DexHandler import DexFormAnalyzer, DexFormMap, DexFormLoader
 from Utils.FileUtil import *
-from DetectRules import Detecter
+from DetectRules import *
+from DetectRules.SmaliMarco import *
 
 if __name__ == '__main__':
     apkPath = getApkPath()
-    apkList = []
+    logging.info("[File]%s", apkPath)
 
-    if os.path.isdir(apkPath):
-        loopDirFiles(apkPath, apkList, ".apk", 4)
-    else:
-        strLen = len(apkPath)
-        if apkPath[strLen - 4:strLen] == ".apk":
-            apkList.append(apkPath)
+    unzipDir = getDexPathByZipApk(apkPath)
+    if unzipDir == "":
+        logging.error("[Fail]Not Found Unzip Dir")
+        exit(-1)
 
-    #解析DEX文件
-    for file in apkList:
+    dexlist = []
+    loopDirFiles(unzipDir, dexlist, ".dex", 4)
+
+    #制定需要扫描的方法\类\类型\变量
+    rule1 = Rules(INS_INVOKE_DIRECT, CHECK_CLASS_TYPE, methodName="<init>", className="Ldalvik/system/DexClassLoader;")
+    rule2 = Rules(INS_INVOKE_VIRTUAL, CHECK_METHOD_TYPE, methodName="loadClass")
+    rules = [rule1, rule2]
+
+    for dexPath in dexlist:
+        logging.info("[Load]" + dexPath)
+        #解析dex文件
         dexFormMap = DexFormMap.DexMap()
         dexFormLoader = DexFormLoader.DexLoader()
         dexFormAnalyzer = DexFormAnalyzer.DexAnalyzer()
-
-        logging.info("[File]%s", file)
-        unzipDir = getDexPathByZipApk(file)
-        if unzipDir == "":
-            logging.error("[Fail]Not Found Unzip Dir")
-            continue
-
-        dexPath = unzipDir + "classes.dex"
-        amTime = getSaltTimeStr()
 
         #读取dex文件
         try:
             dexFormLoader.getMapFile(dexFormMap, dexPath)
         except Exception as e:
-            cleanFiles(dexPath, amTime)
+            logging.error("[Load]%s error." %dexPath)
             continue
 
         #解析dex文件
@@ -48,11 +47,15 @@ if __name__ == '__main__':
         dexFormLoader.loadAllClassAndMethod(dexHeader)
 
         #开始检测和扫描指定API
-        dexDetect = Detecter.Detecter()
-        dexDetect.detectApkApi(dexFormLoader, dexHeader)
+        logging.info("[Detc]Start Detecting...")
+        dexDetect = Detecter()
+        dexDetect.detectApkApi(dexFormLoader, dexHeader, rules)
+        logging.info("[Detc]Finish")
 
-        cleanFiles(dexPath, amTime)
         del dexFormMap
         del dexFormLoader
         del dexFormAnalyzer
         gc.collect()
+
+    #删除解压文件
+    cleanFiles(unzipDir)

@@ -4,25 +4,28 @@ __author__ = 'Rorschach'
 import sys,logging,re,zipfile,time,os,shutil,winreg,gc,random
 logging.basicConfig(format='[%(asctime)s][%(filename)s][line:%(lineno)d][%(levelname)s]%(message)s', level=logging.DEBUG)
 
-#获取APK路径
-def getApkPath():
-    listArgv = getFilePath()
-    dexPath = listArgv[0]
-    if dexPath == "":
-        logging.error("[Fail]GetApkPath")
-        exit(-1)
-    # logging.info("[Success]GetApkPath : %s", dexPath)
-    return dexPath
-
 #通过参数传入或者通过命令行输入APK路径
-def getFilePath():
-    list = []
+def getApkFilePath():
+    apklist = []
+
     if len(sys.argv) > 1:
-        list.append(sys.argv[1])
+        apklist.append(sys.argv[1])
     else:
         arg1 = input("input apk file path:")
-        list.append(arg1)
-    return list
+        apklist.append(arg1)
+
+    return apklist
+
+#获取APK路径
+def getApkPath():
+    listArgv = getApkFilePath()
+    apkPath = listArgv[0]
+
+    if apkPath == "":
+        logging.error("[Fail]GetApkPath")
+        exit(-1)
+
+    return apkPath
 
 #解压APK得到DEX
 def getDexPathByZipApk(apkPath):
@@ -94,13 +97,14 @@ def loopDirFiles(path, fileList, keyStr, lens):
                 fileList.append(filePath)
 
 #删除解压文件
-def cleanFiles(dexPath, amTime):
-    pathList = dexPath.split("/")
-    dexDirPath = ""
-    for listNum in range(0,(len(pathList) - 1)):
-        dexDirPath = dexDirPath + pathList[listNum] + "/"
-    if os.path.isdir(dexDirPath):
-        shutil.rmtree(dexDirPath)
+def cleanFiles(dexPath):
+    logging.info("[Delete]" + dexPath)
+    if os.path.isdir(dexPath):
+        shutil.rmtree(dexPath)
+
+    # pathList = dexPath.split("/")
+    # for listNum in range(0,(len(pathList) - 1)):
+    #     dexDirPath = dexDirPath + pathList[listNum] + "/"
 
 #仅获取WINDOWS桌面目录
 def getDesktop():
@@ -111,36 +115,20 @@ def getDesktop():
 def getSaltTimeStr():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + str(random.randint(0, 99999999))
 
-#解压zip包
+#解压zip包,返回解压后的文件夹路径
 def unzipFile(path, unzipPath):
     isZip = zipfile.is_zipfile(path)
     starttime = getSaltTimeStr()
-    hasFindAM = 0
-    hasFindDex = 0
+    extractPath = unzipPath + "/" + starttime + "/"
+
     if isZip:
         filezip = zipfile.ZipFile(path,'r')
         for file in filezip.namelist():
-            if file == "classes.dex":
-                if not os.path.isdir(unzipPath+"/"+ starttime +"/"):
-                    os.makedirs(unzipPath+"/"+ starttime)
-                filezip.extract(file,unzipPath+"/"+ starttime +"/")
-                # logging.info("[Success]UnZip classes.dex Success")
-                hasFindDex += 1
-            if file == "AndroidManifest.xml":
-                if not os.path.isdir(unzipPath+"/"+ starttime +"/"):
-                    os.makedirs(unzipPath+"/"+ starttime)
-                filezip.extract(file,unzipPath+"/"+ starttime +"/")
-                # logging.info("[Success]UnZip AndroidManifest.xml Success")
-                hasFindAM += 1
+            if file.startswith("classes") and file.endswith(".dex"):
+                if not os.path.isdir(extractPath):
+                    os.makedirs(unzipPath + "/" + starttime)
+                filezip.extract(file, extractPath)
     else:
         logging.error("[Fail]Not Zip File")
-    if hasFindDex == 0:
-        hasFindDex = findDexFileInOdex(unzipPath + "/" + starttime + "/", path)
 
-    if hasFindDex == 1 and hasFindAM == 1:
-        return unzipPath + "/" + starttime + "/"
-    else:
-        if os.path.isdir(unzipPath + "/" + starttime + "/"):
-            shutil.rmtree(unzipPath + "/" + starttime + "/")
-    return ""
-
+    return extractPath
