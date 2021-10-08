@@ -19,8 +19,8 @@ if __name__ == '__main__':
     loopDirFiles(unzipDir, dexlist, ".dex", 4)
 
     #制定需要扫描的方法\类\类型\变量
-    rule1 = Rules(INS_INVOKE_DIRECT, CHECK_CLASS_TYPE, methodName="<init>", className="Ldalvik/system/DexClassLoader;")
-    rule2 = Rules(INS_INVOKE_VIRTUAL, CHECK_METHOD_TYPE, methodName="loadClass")
+    rule1 = Rules(FIND_CALL_DIRECT_METHOD, methodName="<init>", className="Ldalvik/system/DexClassLoader;")
+    rule2 = Rules(FIND_CALL_VIRTUAL_METHOD, methodName="loadClass")
     rules = [rule1, rule2]
 
     for dexPath in dexlist:

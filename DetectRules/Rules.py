@@ -1,21 +1,22 @@
 
 NOT_SET             = -1
-CHECK_CLASS_TYPE    = 1
-CHECK_METHOD_TYPE   = 2
-CHECK_TYPE_TYPE     = 3
-CHECK_TYPE_FIELD    = 4
+FIND_CALL_STATIC_METHOD     = 0x01
+FIND_CALL_DIRECT_METHOD     = 0x02
+FIND_CALL_SUPER_METHOD      = 0x03
+FIND_CALL_VIRTUAL_METHOD    = 0x04
+FIND_PUT_STRING             = 0x05
+FIND_PUT_VALUE              = 0x06
 
 class Rules:
-    checkType = NOT_SET
-    insValue = NOT_SET
-    typeName = ""
+    type = NOT_SET
     methodName = ""
     className = ""
 
-    def __init__(self, insValue, checkType, typeName="", methodName="", className=""):
-        self.checkType = checkType
-        self.insValue = insValue
-        self.typeName = typeName
+    #方法调用查找
+    #字符串查找
+    #数值查找
+    def __init__(self, type, methodName="", className=""):
+        self.type = type
         self.methodName = methodName
         self.className = className
         pass

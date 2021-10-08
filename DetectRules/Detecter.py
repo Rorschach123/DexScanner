@@ -130,6 +130,22 @@ class Detecter:
         else:
             return 0
 
+    def detectOpcode(self, opcode, opcodeLen, ins, rules):
+        for rule in rules:
+            if rule.type == FIND_CALL_STATIC_METHOD:
+                pass
+            elif rule.type == FIND_CALL_DIRECT_METHOD:
+                if opcode == INS_INVOKE_DIRECT:
+                    pass
+            elif rule.type == FIND_CALL_SUPER_METHOD:
+                pass
+            elif rule.type == FIND_CALL_VIRTUAL_METHOD:
+                pass
+            elif rule.type == FIND_PUT_STRING:
+                pass
+            elif rule.type == FIND_PUT_VALUE:
+                pass
+
     #扫描smali捕捉API
     def detectApkApi(self, dexFormLoader, dexHeader, rules):
         self.dexLoader = dexFormLoader
@@ -142,8 +158,8 @@ class Detecter:
             codeLen = len(ins)
             calcuCodeLen = 0
             while codeLen > calcuCodeLen:
-                opcode = ins[calcuCodeLen]
-                opcodeLen = SMALI_OPCODE_DEF[opcode][1]
+                opcode = ins[calcuCodeLen]                  #获取当前指令opcode
+                opcodeLen = SMALI_OPCODE_DEF[opcode][1]     #指令对应长度解析
                 calcuCodeLen += opcodeLen
 
                 # TODO:NOP之后跟着SWITCH-CASE的情况
@@ -151,6 +167,7 @@ class Detecter:
                     calcuCodeLen = codeLen
                     break
 
+                self.detectOpcode(opcode, opcodeLen, ins[calcuCodeLen:], rules)
 
             if calcuCodeLen != codeLen:
                 # logging.error("Code len calculate error : " + ",".join(hex(_) for _ in ins))
