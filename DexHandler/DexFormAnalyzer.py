@@ -70,6 +70,34 @@ class DexHeaderProperty:
         number = endianToNormal(list1[0:length],length)
         return number
 
+    def getClassNameByMethodNum(self, number, dexLoader):
+        className = ""
+        methodIdxOffset = number * 8 + self.methodIdsOff
+        typeNum = endianToNormal(stringListToIntList(dexLoader.mapfile[methodIdxOffset + 0:methodIdxOffset + 2], 2), 2)
+        classNameOffset = endianToNormal(stringListToIntList(dexLoader.mapfile[self.typeIdxOff + 4 * typeNum:self.typeIdxOff + 4 * typeNum + 2], 2), 2)
+        classNameStrOffset = classNameOffset * 4 + self.stringIdxOff
+        stringIdxImp = endianToNormal(stringListToIntList(dexLoader.mapfile[classNameStrOffset:classNameStrOffset + 4], 4), 4)
+        stringlen = ord(dexLoader.mapfile[stringIdxImp])
+        for strNum in range(0, stringlen):
+            className += (dexLoader.mapfile[stringIdxImp + strNum + 1]).decode("gb2312")
+
+        return className
+
+    def getMethodNameByMethodNum(self, number, dexLoader):
+        methodName = ""
+        if number > self.methodIdsSize:
+            return ""
+
+        methodIdxOffset = number * 8 + self.methodIdsOff
+        stringIdx = endianToNormal(stringListToIntList(dexLoader.mapfile[methodIdxOffset + 4:methodIdxOffset + 8], 4), 4) * 4 + self.stringIdxOff
+        stringIdxImp = endianToNormal(stringListToIntList(dexLoader.mapfile[stringIdx:stringIdx + 4], 4), 4)
+        stringlen = ord(dexLoader.mapfile[stringIdxImp])
+
+        for strNum in range(0,stringlen):
+            methodName += (dexLoader.mapfile[stringIdxImp+strNum+1]).decode("gb2312")
+
+        return methodName
+
 #每个数据存储采用leb128数据类型存储
 class DexClassDataHeader:
     staticFieldsSize = 0
