@@ -19,9 +19,8 @@ DEX_HEADER_DATA_SIZE_VAL    = 0x68
 DEX_HEADER_DATA_OFF_VAL     = 0x6C
 
 class DexAnalyzer:
-    className = ""
     def __init__(self):
-        self.className = "Dex analyzer"
+        pass
 
 #DEX文件头解析
 class DexHeaderProperty:
@@ -83,7 +82,7 @@ class DexHeaderProperty:
 
         return className
 
-    def getMethodNameByMethodNum(self, number, dexLoader):
+    def getMethodNameByNumber(self, number, dexLoader):
         methodName = ""
         if number > self.methodIdsSize:
             return ""
@@ -97,6 +96,24 @@ class DexHeaderProperty:
             methodName += (dexLoader.mapfile[stringIdxImp+strNum+1]).decode("gb2312")
 
         return methodName
+
+    def getStringByNumber(self, number, dexLoader):
+        stringValue = ""
+        if number > self.stringIdxSize:
+            return ""
+
+        stringIdx = number * 4 + self.stringIdxOff
+        stringIdxImp = endianToNormal(stringListToIntList(dexLoader.mapfile[stringIdx:stringIdx+4],4),4)
+        stringlen = ord(dexLoader.mapfile[stringIdxImp])
+        for strNum in range(0, stringlen):
+            try:
+                stringValue += (dexLoader.mapfile[stringIdxImp + strNum + 1]).decode("gb2312")
+            except:
+                #TODO:判断非字符串编码就返回空，二进制检索会失效
+                return ""
+
+        return stringValue
+
 
 #每个数据存储采用leb128数据类型存储
 class DexClassDataHeader:

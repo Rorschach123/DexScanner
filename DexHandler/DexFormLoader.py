@@ -12,7 +12,6 @@ class DexLoader:
     dexMethodCodes = []
 
     def __init__(self):
-        self.className = "Dex Loader"
         self.mapfile = []
         self.dexMethodCodes = []
         self.dexClassName = []

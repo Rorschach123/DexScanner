@@ -11,12 +11,15 @@ class Rules:
     type = NOT_SET
     methodName = ""
     className = ""
+    stringValue = ""
+    value = NOT_SET
 
     #方法调用查找
     #字符串查找
     #数值查找
-    def __init__(self, type, methodName="", className=""):
+    def __init__(self, type, methodName="", className="", stringValue="", value=NOT_SET):
         self.type = type
         self.methodName = methodName
         self.className = className
-        pass
+        self.stringValue = stringValue
+        self.value = value
